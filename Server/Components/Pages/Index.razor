@@ -1,0 +1,77 @@
+﻿@page "/"
+@inject IDataService DataService
+ 
+<AuthorizeView>
+    <NotAuthorized>
+        <div class="hero-section">
+            <div class="hero-content">
+                <div class="hero-badge">
+                    <svg class="hero-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12,2A2,2 0 0,1 14,4C14,4.74 13.6,5.39 13,5.73V7H14A7,7 0 0,1 21,14H22A1,1 0 0,1 23,15V18A1,1 0 0,1 22,19H21V20A2,2 0 0,1 19,22H5A2,2 0 0,1 3,20V19H2A1,1 0 0,1 1,18V15A1,1 0 0,1 2,14H3A7,7 0 0,1 10,7H11V5.73C10.4,5.39 10,4.74 10,4A2,2 0 0,1 12,2M7.5,13A0.5,0.5 0 0,0 7,13.5A0.5,0.5 0 0,0 7.5,14A0.5,0.5 0 0,0 8,13.5A0.5,0.5 0 0,0 7.5,13M16.5,13A0.5,0.5 0 0,0 16,13.5A0.5,0.5 0 0,0 16.5,14A0.5,0.5 0 0,0 17,13.5A0.5,0.5 0 0,0 16.5,13Z" />
+                    </svg>
+                    Open Source
+                </div>
+                <h1 class="hero-title">Remotely</h1>
+                <p class="hero-subtitle">
+                    A powerful, secure, and open-source remote support solution.
+                    Connect to any device, anywhere, anytime.
+                </p>
+                
+                <div class="hero-features">
+                    <div class="feature-item">
+                        <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,15.39L8.24,17.66L9.23,13.38L5.91,10.5L10.29,10.13L12,6.09L13.71,10.13L18.09,10.5L14.77,13.38L15.76,17.66M22,9.24L14.81,8.63L12,2L9.19,8.63L2,9.24L7.45,13.97L5.82,21L12,17.27L18.18,21L16.54,13.97L22,9.24Z" />
+                        </svg>
+                        <span>Secure & Reliable</span>
+                    </div>
+                    <div class="feature-item">
+                        <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M17,12C17,14.42 15.28,16.44 13,16.9V21H11V16.9C8.72,16.44 7,14.42 7,12C7,9.58 8.72,7.56 11,7.1V2H13V7.1C15.28,7.56 17,9.58 17,12M12,9A3,3 0 0,0 9,12A3,3 0 0,0 12,15A3,3 0 0,0 15,12A3,3 0 0,0 12,9Z" />
+                        </svg>
+                        <span>Cross-Platform</span>
+                    </div>
+                    <div class="feature-item">
+                        <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M12,4A8,8 0 0,1 20,12A8,8 0 0,1 12,20A8,8 0 0,1 4,12A8,8 0 0,1 12,4M11,16.5L6.5,12L7.91,10.59L11,13.67L16.59,8.09L18,9.5L11,16.5Z" />
+                        </svg>
+                        <span>Easy to Use</span>
+                    </div>
+                </div>
+                
+                <div class="hero-actions">
+                    <a class="btn btn-primary btn-hero" href="Account/Login">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M10,17V14H3V10H10V7L15,12L10,17M10,2H19A2,2 0 0,1 21,4V20A2,2 0 0,1 19,22H10A2,2 0 0,1 8,20V18H10V20H19V4H10V6H8V4A2,2 0 0,1 10,2Z" />
+                        </svg>
+                        Log In
+                    </a>
+
+                    @if (_isRegistrationEnabled)
+                    {
+                        <a class="btn btn-outline-primary btn-hero" href="Account/Register">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M15,14C12.33,14 7,15.33 7,18V20H23V18C23,15.33 17.67,14 15,14M6,10V7H4V10H1V12H4V15H6V12H9V10M15,12A4,4 0 0,0 19,8A4,4 0 0,0 15,4A4,4 0 0,0 11,8A4,4 0 0,0 15,12Z" />
+                            </svg>
+                            Get Started
+                        </a>
+                    }
+                </div>
+            </div>
+        </div>
+    </NotAuthorized>
+    <Authorized>
+        <AuthorizedIndex />
+    </Authorized>
+</AuthorizeView>
+
+@code 
+{
+    private bool _isRegistrationEnabled;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var settings = await DataService.GetSettings();
+        _isRegistrationEnabled = settings.MaxOrganizationCount < 0 || DataService.GetOrganizationCount() < settings.MaxOrganizationCount;
+        await base.OnInitializedAsync();
+    }
+}

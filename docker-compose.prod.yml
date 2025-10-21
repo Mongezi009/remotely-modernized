@@ -1,0 +1,107 @@
+version: '3.8'
+
+networks:
+  remotely:
+    name: remotely-network
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+          gateway: 172.28.0.1
+
+volumes:
+  remotely-data:
+    driver: local
+
+services:
+  remotely:
+    build:
+      context: .
+      dockerfile: Server/Dockerfile
+    container_name: remotely-server
+    restart: unless-stopped
+    ports:
+      - "${PORT:-5000}:5000"
+    volumes:
+      - remotely-data:/app/AppData
+    networks:
+      - remotely
+    environment:
+      # Core ASP.NET Core settings
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_HTTP_PORTS=5000
+      - ASPNETCORE_FORWARDEDHEADERS_ENABLED=true
+      
+      # Logging configuration
+      - Serilog__MinimumLevel__Default=Information
+      - Serilog__MinimumLevel__Override__Microsoft.AspNetCore=Warning
+      - Serilog__MinimumLevel__Override__System=Warning
+      
+      # Database configuration (default to SQLite)
+      - Remotely_ApplicationOptions__DbProvider=${DB_PROVIDER:-SQLite}
+      - Remotely_ConnectionStrings__SQLite=Data Source=/app/AppData/Remotely.db
+      
+      # Network configuration
+      - Remotely_ApplicationOptions__DockerGateway=172.28.0.1
+      
+      # Security settings
+      - Remotely_ApplicationOptions__ForceClientHTTPS=${FORCE_HTTPS:-false}
+      - Remotely_ApplicationOptions__UseHsts=${USE_HSTS:-true}
+      - Remotely_ApplicationOptions__RedirectToHttps=${REDIRECT_HTTPS:-true}
+      
+      # Optional: External database connections
+      - Remotely_ConnectionStrings__SQLServer=${SQL_SERVER_CONNECTION:-}
+      - Remotely_ConnectionStrings__PostgreSQL=${POSTGRESQL_CONNECTION:-}
+      
+      # Optional: SMTP configuration
+      - Remotely_ApplicationOptions__SmtpHost=${SMTP_HOST:-}
+      - Remotely_ApplicationOptions__SmtpPort=${SMTP_PORT:-587}
+      - Remotely_ApplicationOptions__SmtpUserName=${SMTP_USERNAME:-}
+      - Remotely_ApplicationOptions__SmtpPassword=${SMTP_PASSWORD:-}
+      - Remotely_ApplicationOptions__SmtpFrom=${SMTP_FROM:-}
+      
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.remotely.rule=Host(`${DOMAIN:-localhost}`)"
+      - "traefik.http.routers.remotely.entrypoints=websecure"
+      - "traefik.http.routers.remotely.tls.certresolver=letsencrypt"
+      - "traefik.http.services.remotely.loadbalancer.server.port=5000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Reverse proxy with automatic HTTPS
+  traefik:
+    image: traefik:v3.0
+    container_name: remotely-traefik
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # Traefik dashboard
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - traefik-data:/data
+    command:
+      - --api.dashboard=true
+      - --api.insecure=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:-admin@example.com}
+      - --certificatesresolvers.letsencrypt.acme.storage=/data/acme.json
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge=true
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.caserver=${ACME_CA_SERVER:-https://acme-v02.api.letsencrypt.org/directory}
+    networks:
+      - remotely
+    profiles:
+      - traefik
+
+volumes:
+  traefik-data:
+    driver: local

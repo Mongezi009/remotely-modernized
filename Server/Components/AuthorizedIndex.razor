@@ -1,0 +1,86 @@
+﻿@attribute [Authorize]
+@inherits AuthComponentBase
+
+@inject NavigationManager NavManager
+@inject IDataService DataService
+@inject SignInManager<RemotelyUser> SignInManager
+
+<div class="dashboard">
+    @if (!string.IsNullOrWhiteSpace(_settings?.MessageOfTheDay))
+    {
+        <div class="dashboard-alert">
+            <AlertBanner Message="@_settings?.MessageOfTheDay" StatusClass="info" />
+        </div>
+    }
+
+    <div class="dashboard-header">
+        <div class="dashboard-title">
+            <svg class="dashboard-icon" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M4,2H20A2,2 0 0,1 22,4V16A2,2 0 0,1 20,18H16L12,22L8,18H4A2,2 0 0,1 2,16V4A2,2 0 0,1 4,2M4,4V16H8.83L12,19.17L15.17,16H20V4H4Z" />
+            </svg>
+            <h1>Dashboard</h1>
+        </div>
+        <div class="dashboard-subtitle">
+            Welcome back! Here's what's happening with your remote support system.
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <div class="card-header-modern">
+                <svg class="card-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M16,17V19H2V17S2,13 9,13 16,17 16,17M12.5,7.5A3.5,3.5 0 0,0 9,11A3.5,3.5 0 0,0 12.5,7.5A3.5,3.5 0 0,0 16,4A3.5,3.5 0 0,0 12.5,7.5M15.94,13A5.32,5.32 0 0,1 18,17V19H22V17S22,13.37 15.94,13Z" />
+                </svg>
+                <h3>Alerts</h3>
+            </div>
+            <div class="card-body-modern">
+                <AlertsFrame />
+            </div>
+        </div>
+
+        <div class="dashboard-card">
+            <div class="card-header-modern">
+                <svg class="card-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M4,6H20V16H4M20,18A2,2 0 0,0 22,16V6C22,4.89 21.1,4 20,4H4C2.89,4 2,4.89 2,6V16A2,2 0 0,0 4,18H0V20H24V18H20Z" />
+                </svg>
+                <h3>Devices</h3>
+            </div>
+            <div class="card-body-modern">
+                <DevicesFrame />
+            </div>
+        </div>
+
+        <div class="dashboard-card full-width">
+            <div class="card-header-modern">
+                <svg class="card-icon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12,3C6.5,3 2,6.58 2,11C2.05,13.15 3.06,15.17 4.75,16.5C4.75,17.1 4.33,18.67 2,21C4.37,20.89 6.64,20 8.47,18.5C9.61,18.83 10.81,19 12,19C17.5,19 22,15.42 22,11C22,6.58 17.5,3 12,3M12,17C7.58,17 4,14.31 4,11C4,7.69 7.58,5 12,5C16.42,5 20,7.69 20,11C20,14.31 16.42,17 12,17Z" />
+                </svg>
+                <h3>Communication</h3>
+            </div>
+            <div class="card-body-modern">
+                <ChatFrame />
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private SettingsModel? _settings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _settings = await DataService.GetSettings();
+        await base.OnInitializedAsync();
+
+        var isAuthenticated = await AuthService.IsAuthenticated();
+        var userResult = await AuthService.GetUser();
+        // This handles a weird edge case when the user has been
+        // deleted but still has an authentication cookie in their
+        // browser.
+        if (isAuthenticated == true && !userResult.IsSuccess)
+        {
+            await SignInManager.SignOutAsync();
+            NavManager.NavigateTo("/");
+        }
+    }
+}
